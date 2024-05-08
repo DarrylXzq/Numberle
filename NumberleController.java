@@ -1,4 +1,3 @@
-// NumberleController.java
 public class NumberleController {
 
     private INumberleModel model;
@@ -26,7 +25,7 @@ public class NumberleController {
     }
 
     public String getTargetWord() {
-        return model.getTargetNumber();
+        return model.getTargetEquation();
     }
 
     public StringBuilder getCurrentGuess() {
