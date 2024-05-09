@@ -7,10 +7,14 @@ import java.io.IOException;
 
 public class NumberleModel extends Observable implements INumberleModel {
 
+    // 定义全局变量
+    Set<Character> correctPositions = new LinkedHashSet<>();
+    Set<Character> wrongPositions = new LinkedHashSet<>();
+    Set<Character> notInEquation = new LinkedHashSet<>();
+    Set<Character> unused = new LinkedHashSet<>(Arrays.asList('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '='));
+
     private String targetEquation;
     private StringBuilder currentGuess;
-//    ColoredChar[] currentGuess;
-
     private int remainingAttempts;
     private boolean gameWon;
 
@@ -21,68 +25,66 @@ public class NumberleModel extends Observable implements INumberleModel {
     private List<String> validEquations;
 
     // 正则表达式, 用于验证等式的有效性
-    private static final Pattern VALID_CHARS_PATTERN = Pattern.compile("^[0-9\\+\\-\\*/%=]*$");
+    private static final Pattern VALID_CHARS_PATTERN = Pattern.compile("^[0-9\\+\\-\\*/=]*$");
     private static final Pattern EQUAL_SIGN_PATTERN = Pattern.compile("=");
     private static final Pattern ARITHMETIC_OPERATORS_PATTERN = Pattern.compile(".*[\\+\\-\\*/].");
     private static final Pattern OPERATOR_SEQUENCE_PATTERN = Pattern.compile("[\\+\\-\\*/]{2,}");
 
+    private String Feedback;
+    private List<Integer> errorIndices = new ArrayList<>();
     private final List<String> ERROR_MESSAGES = List.of(
-            "方程式包含非法字符。",
-            "方程式太短，必须至少7个字符。",
-            "方程式太长，必须不超过7个字符。",
-            "方程式必须包含一个等号。",
-            "方程式缺少运算符。",
-            "方程式中的运算符连续出现。",
-            "等式两边的计算结果不相等。"
+            "⚠️方程式包含非法字符。",
+            "⚠️方程式太短，必须至少7个字符。",
+            "⚠️方程式太长，必须不超过7个字符。",
+            "⚠️方程式必须包含一个等号。",
+            "⚠️方程式缺少运算符。",
+            "⚠️方程式中的运算符连续出现。",
+            "⚠️等式两边的计算结果不相等。"
     );
 
-    private List<Integer> errorIndices = new ArrayList<>();
 
     @Override
     public int readBinaryInput(Scanner scanner, String prompt) {
-        int input;
+        String input;
         while (true) {
             System.out.print(prompt);
-            if (scanner.hasNextInt()) {
-                input = scanner.nextInt();
-                if (input == 0 || input == 1) {
-                    scanner.nextLine(); // 清空 Scanner 缓存，防止后续读取出错
-                    return input;
-                }
-            } else {
-                scanner.next(); // 清空非整数输入
+            input = scanner.nextLine(); // 直接读取整行输入
+            if (input.equals("0") || input.equals("1")) {
+                return Integer.parseInt(input); // 将输入的字符串转换为整数
             }
             System.out.println("无效输入，请输入 0 或 1。");
         }
     }
 
-
     private void configureModel(INumberleModel model, int showEquation, int validateInput, int randomSelection) {
         model.setDisplayTargetEquation(showEquation == 1);
         model.setDisplayErrorIfInvalid(validateInput == 1);
         model.setUseRandomSelection(randomSelection == 1);
+        setChanged();
+        notifyObservers();
     }
 
     @Override
     public void initialize(INumberleModel model, int showEquation, int validateInput, int randomSelection) {
         loadValidEquations();
         configureModel(model, showEquation, validateInput, randomSelection);
+        initializeSets();
         startNewGame();
     }
 
     private void displayTargetEquation() {
         if (displayTargetEquation) {
-            System.out.println("目标方程式为：" + getTargetEquation());
+            System.out.println("\n💡目标方程式为：" + getTargetEquation());
         }
     }
 
     @Override
     public void gameLogic(INumberleModel model) {
         Scanner scanner = new Scanner(System.in);
-        displayTargetEquation();
         // 游戏主循环
         while (!model.isGameOver()) {
-            System.out.print("\n请输入方程式 (7 个字符，包括一个等号)：");
+            displayTargetEquation();
+            System.out.print("请输入方程式：");
             String input = scanner.nextLine();
 
             // 处理输入
@@ -90,7 +92,6 @@ public class NumberleModel extends Observable implements INumberleModel {
                 for (int index : errorIndices) {
                     System.out.println(ERROR_MESSAGES.get(index));
                 }
-                displayTargetEquation();
                 continue;
             }
 
@@ -99,10 +100,10 @@ public class NumberleModel extends Observable implements INumberleModel {
                 System.out.println("\n恭喜你猜对了方程式！");
                 break;
             }
-            //显示目标方程式
-            displayTargetEquation();
+
             // 显示当前猜测状态和剩余次数
             System.out.println("当前猜测：" + model.getCurrentGuess());
+            displaySets();
             System.out.println("剩余尝试次数：" + model.getRemainingAttempts());
         }
 
@@ -117,25 +118,21 @@ public class NumberleModel extends Observable implements INumberleModel {
 
     @Override
     public boolean processInput(String input) {
-        // 首先判断是否需要显示错误信息
-        if (displayErrorIfInvalid) {
-            // 验证用户输入
-            if (!isValidEquation(input)) {
-                return false;  // 直接返回，不减少尝试次数
+        if (!isValidEquation(input)) {
+            setChanged();
+            for (int index : errorIndices) {
+                notifyObservers(ERROR_MESSAGES.get(index));
             }
+            return false;  // 直接返回，不减少尝试次数
         }
-
         // 检查输入的等式是否匹配目标
         remainingAttempts--;  // 有效尝试，减少一次尝试次数
         if (input.equals(targetEquation)) {
             gameWon = true;
         } else {
             // 为玩家的猜测提供反馈
-            currentGuess.setLength(0);
-            currentGuess.append(evaluateFeedback(input));
+            updateCurrentGuess(input);
         }
-        setChanged();
-        notifyObservers();
         return true;
     }
 
@@ -196,6 +193,21 @@ public class NumberleModel extends Observable implements INumberleModel {
         this.useRandomSelection = useRandomSelection;
     }
 
+    @Override
+    public boolean getDisplayErrorIfInvalid() {
+        return displayErrorIfInvalid;
+    }
+
+    @Override
+    public boolean getDisplayTargetEquation() {
+        return displayTargetEquation;
+    }
+
+    @Override
+    public boolean getUseRandomSelection() {
+        return useRandomSelection;
+    }
+
     private void loadValidEquations() {
         // 从文件中加载等式
         try {
@@ -210,53 +222,67 @@ public class NumberleModel extends Observable implements INumberleModel {
         errorIndices.clear(); // 清空之前的错误索引
         // 第一步: 检查是否包含除0-9和+-*%=之外的字符，可以为空
         if (!VALID_CHARS_PATTERN.matcher(equation).matches()) {
-            errorIndices.add(0);
+            if (displayErrorIfInvalid){
+                errorIndices.add(0);
+            }
             return false;
         }
 
         // 第二步: 判断输入的字符是否正确长度
         if (equation.length() < 7) {
-            errorIndices.add(1);
+            if (displayErrorIfInvalid){
+                errorIndices.add(1);
+            }
             return false;
         } else if (equation.length() > 7) {
-            errorIndices.add(2);
+            if (displayErrorIfInvalid){
+                errorIndices.add(2);
+            }
             return false;
         }
 
         // 第三步: 判断等式中是否有等号
         if (!EQUAL_SIGN_PATTERN.matcher(equation).find()) {
-            errorIndices.add(3);
+            if (displayErrorIfInvalid){
+                errorIndices.add(3);
+            }
             return false;
         }
 
         // 第四步: 判断等式中是否至少包含一个+-*%
         if (!ARITHMETIC_OPERATORS_PATTERN.matcher(equation).find()) {
-            errorIndices.add(4);
+            if (displayErrorIfInvalid){
+                errorIndices.add(4);
+            }
             return false;
         }
 
         // 第五步: 检查运算符是否有连续出现
         if (OPERATOR_SEQUENCE_PATTERN.matcher(equation).find()) {
-            errorIndices.add(5);
+            if (displayErrorIfInvalid){
+                errorIndices.add(5);
+            }
             return false;
         }
 
-        // 第六步: 检查等式两边的计算结果是否相等
-        try {
-            String[] parts = equation.split("=");
-            if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
+        if (displayErrorIfInvalid) {
+            // 第六步: 检查等式两边的计算结果是否相等
+            try {
+                String[] parts = equation.split("=");
+                if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
+                    errorIndices.add(6);
+                    return false;
+                }
+                double leftResult = evaluateExpression(parts[0]);
+                double rightResult = evaluateExpression(parts[1]);
+                if (Math.abs(leftResult - rightResult) > 0.0001) { // 使用一定的容差来比较浮点数结果
+                    errorIndices.add(6);
+                    return false;
+                }
+            } catch (Exception e) {
                 errorIndices.add(6);
                 return false;
             }
-            double leftResult = evaluateExpression(parts[0]);
-            double rightResult = evaluateExpression(parts[1]);
-            if (Math.abs(leftResult - rightResult) > 0.0001) { // 使用一定的容差来比较浮点数结果
-                errorIndices.add(6);
-                return false;
-            }
-        } catch (Exception e) {
-            errorIndices.add(6);
-            return false;
         }
         return true;
     }
@@ -321,8 +347,8 @@ public class NumberleModel extends Observable implements INumberleModel {
                 throw new UnsupportedOperationException("无效的操作符：" + operator);
         }
     }
-
-    private String evaluateFeedback(String input) {
+    @Override
+    public String evaluateFeedback(String input) {
         // 使用颜色指示反馈
         StringBuilder feedback = new StringBuilder("       ");
         // 将输入和目标转化为字符数组
@@ -355,21 +381,113 @@ public class NumberleModel extends Observable implements INumberleModel {
                 feedback.setCharAt(i, 'X'); // 灰色表示不正确
             }
         }
-
+        Feedback = feedback.toString();
+        setChanged();
+        notifyObservers("Feedback");
         return feedback.toString();
     }
 
     private void updateCurrentGuess(String input) {
         String feedback = evaluateFeedback(input);
+        String[] colors = {"\033[32m", // Green
+                "\033[93m", // Bright Yellow (for a vivid orange-like color)
+                "\033[90m", // Bright Black (for gray)
+                "\033[0m"}; // Reset
+
+        // 清空原始的 currentGuess
+        currentGuess.setLength(0);
+
+        // 为反馈字符应用颜色
         for (int i = 0; i < feedback.length(); i++) {
             char feedbackChar = feedback.charAt(i);
             String color = switch (feedbackChar) {
-                case 'G' -> "\033[32m";  // Green
-                case 'O' -> "\033[33m";  // Orange
-                default -> "\033[31m";  // Red (assume 'X' and any other case)
+                case 'G' -> colors[0];  // Green
+                case 'O' -> colors[1];  // Orange
+                default -> colors[2];   // Red for 'X' or any other
             };
-            currentGuess[i] = new ColoredChar(input.charAt(i), color);
+
+            // 将带颜色的字符添加到 currentGuess
+            currentGuess.append(color).append(input.charAt(i)).append(colors[3]);
+            updateSets(input, feedback);
         }
+    }
+
+    // 初始化未使用的字符集
+    private void initializeSets() {
+        unused.clear();
+        for (char c : "0123456789+-*/=".toCharArray()) {
+            unused.add(c);
+        }
+    }
+
+    private void updateSets(String input, String feedback) {
+        correctPositions.clear();
+        wrongPositions.clear();
+        notInEquation.clear();
+
+        for (int i = 0; i < feedback.length(); i++) {
+            char ch = input.charAt(i);
+            switch (feedback.charAt(i)) {
+                case 'G':  // 正确位置
+                    correctPositions.add(ch);
+                    unused.remove(ch);
+                    break;
+                case 'O':  // 错误位置
+                    if (!correctPositions.contains(ch)) {
+                        wrongPositions.add(ch);
+                    }
+                    unused.remove(ch);
+                    break;
+                case 'X':  // 不存在
+                    if (!correctPositions.contains(ch) && !wrongPositions.contains(ch)) {
+                        notInEquation.add(ch);
+                    }
+                    unused.remove(ch);
+                    break;
+            }
+        }
+        setChanged();
+        notifyObservers("UpdateSets");
+    }
+
+    private void displaySets() {
+        // 定义颜色代码
+        String green = "\033[32m";  // Green for correct positions
+        String orange = "\033[93m"; // Bright Yellow (orange-like) for wrong positions
+        String gray = "\033[90m";   // Gray for not in equation
+        String white = "\033[97m";  // White for unused
+        String reset = "\033[0m";   // Reset to default color
+
+        // 输出带颜色的集合内容
+        System.out.println(green + "正确位置的符号或数字: " + correctPositions);
+        System.out.println(orange + "错误位置的符号或数字: " + wrongPositions);
+        System.out.println(gray + "等式中不存在的符号或数字: " + notInEquation);
+        System.out.println(white + "还没有使用的符号或数字: " + unused + reset);
+    }
+
+    @Override
+    public Set<Character> getCorrectPositions() {
+        return correctPositions;
+    }
+
+    @Override
+    public Set<Character> getWrongPositions() {
+        return wrongPositions;
+    }
+
+    @Override
+    public Set<Character> getNotInEquation() {
+        return notInEquation;
+    }
+
+    @Override
+    public Set<Character> getUnused() {
+        return unused;
+    }
+
+    @Override
+    public String getFeedback() {
+        return Feedback;
     }
 
 }

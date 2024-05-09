@@ -1,3 +1,6 @@
+import java.util.List;
+import java.util.Set;
+
 public class NumberleController {
 
     private INumberleModel model;
@@ -12,8 +15,8 @@ public class NumberleController {
         this.view = view;
     }
 
-    public void processInput(String input) {
-        model.processInput(input);
+    public boolean processInput(String input) {
+        return model.processInput(input);
     }
 
     public boolean isGameOver() {
@@ -36,7 +39,41 @@ public class NumberleController {
         return model.getRemainingAttempts();
     }
 
-    public void startNewGame() {
-        model.startNewGame();
+    public void startNewGame(boolean showEquation, boolean validateInput, boolean randomSelection) {
+        model.initialize(model, showEquation ? 1 : 0, validateInput ? 1 : 0, randomSelection ? 1 : 0);
+
     }
+
+    public boolean getDisplayTargetEquation() {
+        return model.getDisplayTargetEquation();
+    }
+
+    public boolean getDisplayErrorIfInvalid() {
+        return model.getDisplayErrorIfInvalid();
+    }
+
+    public boolean getUseRandomSelection() {
+        return model.getUseRandomSelection();
+    }
+
+    public Set<Character> getCorrectPositions() {
+        return model.getCorrectPositions();
+    }
+
+    public Set<Character> getWrongPositions() {
+        return model.getWrongPositions();
+    }
+
+    public Set<Character> getNotInEquation() {
+        return model.getNotInEquation();
+    }
+
+    public Set<Character> getUnused() {
+        return model.getUnused();
+    }
+
+    public String getFeedback() {
+        return model.getFeedback();
+    }
+
 }
