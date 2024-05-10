@@ -15,9 +15,9 @@ public class CLIApp {
         INumberleModel model = new NumberleModel();
 
         // 从用户读取配置参数
-        int showEquation = model.readBinaryInput(scanner, "是否显示目标方程式 (0=否, 1=是): ");
-        int validateInput = model.readBinaryInput(scanner, "是否验证输入有效性 (0=否, 1=是): ");
-        int randomSelection = model.readBinaryInput(scanner, "是否使用随机方程式 (0=否, 1=是): ");
+        int showEquation = model.readBinaryInput(scanner, "🚩是否显示目标方程式 (0=否, 1=是): ");
+        int validateInput = model.readBinaryInput(scanner, "🚩是否验证输入有效性 (0=否, 1=是): ");
+        int randomSelection = model.readBinaryInput(scanner, "🚩是否使用随机方程式 (0=否, 1=是): ");
 
         // 初始化模型
         model.initialize(model, showEquation, validateInput, randomSelection);

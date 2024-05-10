@@ -98,6 +98,8 @@ public class NumberleModel extends Observable implements INumberleModel {
             // 检查是否赢得比赛
             if (model.isGameWon()) {
                 System.out.println("\n恭喜你猜对了方程式！");
+                System.out.println("当前猜测：" + model.getCurrentGuess());
+                displaySets();
                 break;
             }
 
@@ -119,19 +121,17 @@ public class NumberleModel extends Observable implements INumberleModel {
     @Override
     public boolean processInput(String input) {
         if (!isValidEquation(input)) {
-            setChanged();
             for (int index : errorIndices) {
+                setChanged();
                 notifyObservers(ERROR_MESSAGES.get(index));
             }
             return false;  // 直接返回，不减少尝试次数
         }
         // 检查输入的等式是否匹配目标
         remainingAttempts--;  // 有效尝试，减少一次尝试次数
+        updateCurrentGuess(input);
         if (input.equals(targetEquation)) {
             gameWon = true;
-        } else {
-            // 为玩家的猜测提供反馈
-            updateCurrentGuess(input);
         }
         return true;
     }
@@ -428,22 +428,22 @@ public class NumberleModel extends Observable implements INumberleModel {
         for (int i = 0; i < feedback.length(); i++) {
             char ch = input.charAt(i);
             switch (feedback.charAt(i)) {
-                case 'G':  // 正确位置
+                case 'G' -> {  // 正确位置
                     correctPositions.add(ch);
                     unused.remove(ch);
-                    break;
-                case 'O':  // 错误位置
+                }
+                case 'O' -> {  // 错误位置
                     if (!correctPositions.contains(ch)) {
                         wrongPositions.add(ch);
                     }
                     unused.remove(ch);
-                    break;
-                case 'X':  // 不存在
+                }
+                case 'X' -> {  // 不存在
                     if (!correctPositions.contains(ch) && !wrongPositions.contains(ch)) {
                         notInEquation.add(ch);
                     }
                     unused.remove(ch);
-                    break;
+                }
             }
         }
         setChanged();

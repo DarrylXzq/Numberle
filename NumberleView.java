@@ -40,7 +40,6 @@ public class NumberleView implements Observer {
         initializeFrame();
     }
 
-
     private void showPreGameSettings() {
         JDialog settingsDialog = new JDialog(frame, "Settings", true);
         settingsDialog.setLocationRelativeTo(frame);
@@ -171,6 +170,7 @@ public class NumberleView implements Observer {
             JButton button = new JButton(String.valueOf(c));
             customizeButton(button, buttonFont);
             button.addActionListener(numberListener);
+            button.setBackground(new Color(219, 223, 236));
             numberPanel.add(button);
         }
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -185,6 +185,7 @@ public class NumberleView implements Observer {
             JButton button = new JButton(op);
             customizeButton(button, buttonFont);
             button.addActionListener(operationListener);
+            button.setBackground(new Color(219, 223, 236));
             operationPanel.add(button);
         }
         gbc.weighty = 0.50;
@@ -250,6 +251,7 @@ public class NumberleView implements Observer {
         JButton button = new JButton(scaleImageIcon(imagePath, width, height));
         button.setToolTipText(tooltip);
         button.setFocusPainted(false);
+        button.setBackground(new Color(236, 236, 237));
         return button;
     }
 
@@ -297,25 +299,30 @@ public class NumberleView implements Observer {
                     JButton button = (JButton) comp;
                     char ch = button.getText().charAt(0);
 
+                    Color currentColor = button.getBackground();
+
+                    // 如果按钮已经是绿色或灰色，则跳过更新
+                    if (currentColor.equals(green) || currentColor.equals(grey)) {
+                        continue;
+                    }
+
                     // 根据所属集合更新颜色
                     if (correctPositions.contains(ch)) {
                         button.setBackground(green);
-                    } else if (wrongPositions.contains(ch)) {
-                        button.setBackground(orange);
-                    } else if (notInEquation.contains(ch)) {
+                    } else if (notInEquation.contains(ch) && !currentColor.equals(green)) {
                         button.setBackground(grey);
+                    } else if (wrongPositions.contains(ch) && !currentColor.equals(green) && !currentColor.equals(grey)) {
+                        button.setBackground(orange);
                     } else if (unused.contains(ch)) {
                         button.setBackground(white);
                     } else {
                         // 如果字符不在任何集合中，重置为默认颜色
-                        button.setBackground(null);
+                        button.setBackground(white);
                     }
                 }
             }
         });
     }
-
-
 
 
     @Override
@@ -368,6 +375,7 @@ public class NumberleView implements Observer {
                     Set<Character> wrongPositions = controller.getWrongPositions();
                     Set<Character> notInEquation = controller.getNotInEquation();
                     Set<Character> unused = controller.getUnused();
+                    System.out.println(controller.getCurrentGuess());
                     updateButtonColors(correctPositions, wrongPositions, notInEquation, unused);
 
                     break;
