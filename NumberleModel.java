@@ -64,6 +64,23 @@ public class NumberleModel extends Observable implements INumberleModel {
         notifyObservers();
     }
 
+    // 初始化未使用的字符集
+    private void initializeSets() {
+        correctPositions.clear();
+        wrongPositions.clear();
+        notInEquation.clear();
+        unused.clear();
+        for (char c : "0123456789+-*/=".toCharArray()) {
+            unused.add(c);
+        }
+    }
+
+    @Override
+    public void restartGame() {
+        initializeSets();
+        startNewGame();
+    }
+
     @Override
     public void initialize(INumberleModel model, int showEquation, int validateInput, int randomSelection) {
         loadValidEquations();
@@ -97,9 +114,9 @@ public class NumberleModel extends Observable implements INumberleModel {
 
             // 检查是否赢得比赛
             if (model.isGameWon()) {
-                System.out.println("\n恭喜你猜对了方程式！");
                 System.out.println("当前猜测：" + model.getCurrentGuess());
                 displaySets();
+                System.out.println("\n🤗恭喜你猜对了方程式！");
                 break;
             }
 
@@ -111,10 +128,10 @@ public class NumberleModel extends Observable implements INumberleModel {
 
         // 显示最终结果
         if (!model.isGameWon()) {
-            System.out.println("\n很遗憾，你未能猜中目标方程式。目标方程式是：" + model.getTargetEquation());
+            System.out.println("\n😭Unfortunately, you did not guess the target equation correctly. The target equation is:" + model.getTargetEquation());
         }
 
-        System.out.println("\n游戏结束，谢谢参与！");
+        System.out.println("\n✨✨游戏结束，谢谢参与！✨✨");
         scanner.close();
     }
 
@@ -129,10 +146,16 @@ public class NumberleModel extends Observable implements INumberleModel {
         }
         // 检查输入的等式是否匹配目标
         remainingAttempts--;  // 有效尝试，减少一次尝试次数
+        setChanged();
+        notifyObservers("Restart");
         updateCurrentGuess(input);
         if (input.equals(targetEquation)) {
             gameWon = true;
+            setChanged();
+            notifyObservers("Congratulations on guessing the equation correctly!");
         }
+        setChanged();
+        notifyObservers("CheckGameFailed");
         return true;
     }
 
@@ -167,15 +190,13 @@ public class NumberleModel extends Observable implements INumberleModel {
         gameWon = false;
         currentGuess = new StringBuilder("       ");
 
+
         if (useRandomSelection) {
             Random rand = new Random();
             targetEquation = validEquations.get(rand.nextInt(validEquations.size()));
         } else {
             targetEquation = validEquations.get(0); // 固定的等式（例如文件中的第一个）
         }
-
-        setChanged();
-        notifyObservers();
     }
 
     @Override
@@ -194,19 +215,10 @@ public class NumberleModel extends Observable implements INumberleModel {
     }
 
     @Override
-    public boolean getDisplayErrorIfInvalid() {
-        return displayErrorIfInvalid;
-    }
-
-    @Override
     public boolean getDisplayTargetEquation() {
         return displayTargetEquation;
     }
 
-    @Override
-    public boolean getUseRandomSelection() {
-        return useRandomSelection;
-    }
 
     private void loadValidEquations() {
         // 从文件中加载等式
@@ -222,7 +234,7 @@ public class NumberleModel extends Observable implements INumberleModel {
         errorIndices.clear(); // 清空之前的错误索引
         // 第一步: 检查是否包含除0-9和+-*%=之外的字符，可以为空
         if (!VALID_CHARS_PATTERN.matcher(equation).matches()) {
-            if (displayErrorIfInvalid){
+            if (displayErrorIfInvalid) {
                 errorIndices.add(0);
             }
             return false;
@@ -230,12 +242,12 @@ public class NumberleModel extends Observable implements INumberleModel {
 
         // 第二步: 判断输入的字符是否正确长度
         if (equation.length() < 7) {
-            if (displayErrorIfInvalid){
+            if (displayErrorIfInvalid) {
                 errorIndices.add(1);
             }
             return false;
         } else if (equation.length() > 7) {
-            if (displayErrorIfInvalid){
+            if (displayErrorIfInvalid) {
                 errorIndices.add(2);
             }
             return false;
@@ -243,7 +255,7 @@ public class NumberleModel extends Observable implements INumberleModel {
 
         // 第三步: 判断等式中是否有等号
         if (!EQUAL_SIGN_PATTERN.matcher(equation).find()) {
-            if (displayErrorIfInvalid){
+            if (displayErrorIfInvalid) {
                 errorIndices.add(3);
             }
             return false;
@@ -251,7 +263,7 @@ public class NumberleModel extends Observable implements INumberleModel {
 
         // 第四步: 判断等式中是否至少包含一个+-*%
         if (!ARITHMETIC_OPERATORS_PATTERN.matcher(equation).find()) {
-            if (displayErrorIfInvalid){
+            if (displayErrorIfInvalid) {
                 errorIndices.add(4);
             }
             return false;
@@ -259,7 +271,7 @@ public class NumberleModel extends Observable implements INumberleModel {
 
         // 第五步: 检查运算符是否有连续出现
         if (OPERATOR_SEQUENCE_PATTERN.matcher(equation).find()) {
-            if (displayErrorIfInvalid){
+            if (displayErrorIfInvalid) {
                 errorIndices.add(5);
             }
             return false;
@@ -347,6 +359,7 @@ public class NumberleModel extends Observable implements INumberleModel {
                 throw new UnsupportedOperationException("无效的操作符：" + operator);
         }
     }
+
     @Override
     public String evaluateFeedback(String input) {
         // 使用颜色指示反馈
@@ -403,20 +416,12 @@ public class NumberleModel extends Observable implements INumberleModel {
             String color = switch (feedbackChar) {
                 case 'G' -> colors[0];  // Green
                 case 'O' -> colors[1];  // Orange
-                default -> colors[2];   // Red for 'X' or any other
+                default -> colors[2];   // grey for 'X' or any other
             };
 
             // 将带颜色的字符添加到 currentGuess
             currentGuess.append(color).append(input.charAt(i)).append(colors[3]);
             updateSets(input, feedback);
-        }
-    }
-
-    // 初始化未使用的字符集
-    private void initializeSets() {
-        unused.clear();
-        for (char c : "0123456789+-*/=".toCharArray()) {
-            unused.add(c);
         }
     }
 
@@ -447,7 +452,7 @@ public class NumberleModel extends Observable implements INumberleModel {
             }
         }
         setChanged();
-        notifyObservers("UpdateSets");
+        notifyObservers("UpdateKeyboard");
     }
 
     private void displaySets() {

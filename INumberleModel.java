@@ -9,6 +9,8 @@ public interface INumberleModel {
 
     void initialize(INumberleModel model, int showEquation, int validateInput, int randomSelection);
 
+    void restartGame();
+
     void gameLogic(INumberleModel model);
 
     void startNewGame();
@@ -35,10 +37,6 @@ public interface INumberleModel {
     void setUseRandomSelection(boolean useRandomSelection);
 
     boolean getDisplayTargetEquation();
-
-    boolean getDisplayErrorIfInvalid();
-
-    boolean getUseRandomSelection();
 
     Set<Character> getCorrectPositions();
 

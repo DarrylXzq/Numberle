@@ -7,16 +7,24 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class NumberleView implements Observer {
+
     private final INumberleModel model;
     private final NumberleController controller;
     private final JFrame frame = new JFrame("Numberle");
     private final JTextField[][] inputFields = new JTextField[6][7];
-    private JPanel numberPanel;  // 将numberPanel声明为类的成员变量
-    private JPanel operationPanel;  // 将operationPanel声明为类的成员变量
-
-    private final JLabel attemptsLabel = new JLabel("Attempts remaining: ");
+    private final Color green = new Color(61, 191, 165);   // 绿色，代表正确位置
+    private final Color orange = new Color(241, 155, 113); // 橙色，代表错误位置
+    private final Color grey = new Color(165, 172, 195);   // 灰色，代表不在等式中
+    private final Color white = new Color(219, 223, 236);  // 白色，代表未使用
 
     private final JButton hintButton; // Declare hintButton at class level
+    private final JButton restartButton; // Declare restartButton at class level
+
+    private JPanel numberPanel;
+    private JPanel operationPanel;
+
+
+    private boolean isFirstRun = true;  // 初始设置为 true，表示第一次点击
 
     boolean stop = false;
 
@@ -32,6 +40,16 @@ public class NumberleView implements Observer {
             String targetEquation = controller.getTargetWord();
             JOptionPane.showMessageDialog(frame, "Target Equation: " + targetEquation, "Hint", JOptionPane.INFORMATION_MESSAGE);
         });
+
+        restartButton = createButtonWithIcon("Restart", "./figure/restart.png", 30, 30);
+        restartButton.setEnabled(false);
+        restartButton.addActionListener(e -> {
+            restartButton.setEnabled(false);
+            resetGameInterface();
+            controller.restartGame();
+
+        });
+
 
         ((NumberleModel) this.model).addObserver(this);
         this.controller.setView(this);
@@ -87,10 +105,14 @@ public class NumberleView implements Observer {
                 boolean showEquation = showEquationCheckBox.isSelected();
                 boolean validateInput = validateInputCheckBox.isSelected();
                 boolean randomSelection = randomSelectionCheckBox.isSelected();
-
                 // 调用controller的方法，传递设置信息
-                controller.startNewGame(showEquation, validateInput, randomSelection);
-
+                controller.initializeGame(showEquation, validateInput, randomSelection);
+                // 如果不是第一次点击，执行重置界面函数
+                if (!isFirstRun) {
+                    resetGameInterface();
+                } else {
+                    isFirstRun = false;  // 更新标志，表示首次点击已完成
+                }
                 // 关闭对话框并显示主游戏窗口
                 settingsDialog.dispose();
                 frame.setVisible(true);
@@ -102,6 +124,7 @@ public class NumberleView implements Observer {
         // Show the dialog
         settingsDialog.setVisible(true);
     }
+
 
     public void initializeFrame() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -121,12 +144,6 @@ public class NumberleView implements Observer {
         JPanel buttonPanel = new JPanel(new GridLayout(1, 4));
         JButton settingsButton = createButtonWithIcon("Settings", "./figure/settings.png", 30, 30);
         settingsButton.addActionListener(e -> showPreGameSettings());
-
-        JButton restartButton = createButtonWithIcon("Restart", "./figure/restart.png", 30, 30);
-        restartButton.addActionListener(e -> {
-            // 可以在这里添加重新启动游戏的逻辑
-        });
-
 
         JButton howToPlayButton = createButtonWithIcon("How to Play", "./figure/how_to_play.png", 30, 30);
         howToPlayButton.addActionListener(e -> {
@@ -157,7 +174,7 @@ public class NumberleView implements Observer {
             }
             gridPanel.add(rowPanel);
         }
-        gbc.insets = new Insets(0, 100, 0, 100);
+        gbc.insets = new Insets(15, 100, 30, 100);
         gbc.weighty = 3.5;
         frame.add(gridPanel, gbc);
 
@@ -196,46 +213,82 @@ public class NumberleView implements Observer {
         frame.setLocationRelativeTo(null);
     }
 
+    private void resetGameInterface() {
+        // Reset all JTextFields in inputFields
+        for (JTextField[] inputField : inputFields) {
+            for (JTextField jTextField : inputField) {
+                jTextField.setText("");  // 清空文本
+                jTextField.setBackground(Color.WHITE);  // 重置背景色为默认
+            }
+        }
+
+        // Reset the buttons in numberPanel and operationPanel
+        Stream.of(numberPanel, operationPanel).forEach(panel -> {
+            for (Component comp : panel.getComponents()) {
+                if (comp instanceof JButton button) {
+                    button.setBackground(white);  // 清除按钮背景色
+                    button.setEnabled(true);  // 重新启用按钮
+                }
+            }
+        });
+
+        currentPanelIndex = 0;
+        currentInputIndex = 0;
+
+    }
+
+
+    private void disableButtons() {
+        Stream.of(numberPanel, operationPanel).forEach(panel -> {
+            for (Component comp : panel.getComponents()) {
+                if (comp instanceof JButton) {
+                    JButton button = (JButton) comp;
+                    button.setEnabled(false); // 禁用按钮
+                }
+            }
+        });
+    }
+
     private ActionListener createActionListener() {
-        return new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String command = e.getActionCommand();
-                // 处理删除操作
-                if (command.equals("Delete")) {
-                    if (currentInputIndex == 6 && !stop) {
-                        inputFields[currentPanelIndex][currentInputIndex].setText("");
-                        stop = true;
-                    } else if (currentInputIndex > 0) {
-                        inputFields[currentPanelIndex][currentInputIndex - 1].setText("");
-                        currentInputIndex--;
+        return e -> {
+            String command = e.getActionCommand();
+            // 处理删除操作
+            if (command.equals("Delete")) {
+                if (currentInputIndex == 6 && !stop) {
+                    inputFields[currentPanelIndex][currentInputIndex].setText("");
+                    stop = true;
+                } else if (currentInputIndex > 0) {
+                    inputFields[currentPanelIndex][currentInputIndex - 1].setText("");
+                    currentInputIndex--;
+                }
+            }
+            // 处理 Enter 操作
+            else if (command.equals("Enter")) {
+                // 收集当前行的输入
+                StringBuilder input = new StringBuilder();
+                for (int i = 0; i < 7; i++) {
+                    input.append(inputFields[currentPanelIndex][i].getText());
+                }
+                // 调用 controller 的 processInput 方法
+                if (controller.processInput(input.toString())) {
+                    if (controller.isGameOver()) {
+                        disableButtons(); // 禁用所有按钮的方法
+                    } else if (currentPanelIndex < 5) {
+                        currentPanelIndex++;
+                        currentInputIndex = 0; // Start at the beginning of the next panel
                     }
                 }
-                // 处理 Enter 操作
-                else if (command.equals("Enter")) {
-                    // 收集当前行的输入
-                    StringBuilder input = new StringBuilder();
-                    for (int i = 0; i < 7; i++) {
-                        input.append(inputFields[currentPanelIndex][i].getText());
-                    }
-                    // 调用 controller 的 processInput 方法
-                    if (controller.processInput(input.toString())) {
-                        if (currentPanelIndex < 5) {
-                            currentPanelIndex++;
-                            currentInputIndex = 0; // Start at the beginning of the next panel
-                        }
-                    }
+            }
+
+            // 处理数字和运算符输入
+            else {
+                if (currentInputIndex == 6) {
+                    stop = false;
                 }
-                // 处理数字和运算符输入
-                else {
-                    if (currentInputIndex == 6) {
-                        stop = false;
-                    }
-                    if (currentInputIndex < 7 && inputFields[currentPanelIndex][currentInputIndex].getText().isEmpty()) {
-                        inputFields[currentPanelIndex][currentInputIndex].setText(command);
-                        if (currentInputIndex < 6) {
-                            currentInputIndex++;
-                        }
+                if (currentInputIndex < 7 && inputFields[currentPanelIndex][currentInputIndex].getText().isEmpty()) {
+                    inputFields[currentPanelIndex][currentInputIndex].setText(command);
+                    if (currentInputIndex < 6) {
+                        currentInputIndex++;
                     }
                 }
             }
@@ -268,16 +321,12 @@ public class NumberleView implements Observer {
             return;
         }
 
-        Color green = new Color(61, 191, 165); // 绿色
-        Color orange = new Color(241, 155, 113); // 橙色
-        Color red = new Color(165, 172, 195); // 红色
-
         for (int i = 0; i < feedback.length(); i++) {
             char ch = feedback.charAt(i);
             Color colorToApply = switch (ch) {
                 case 'G' -> green;
                 case 'O' -> orange;
-                case 'X' -> red;
+                case 'X' -> grey;
                 default -> throw new IllegalArgumentException("Unexpected value: " + ch);
             };
 
@@ -287,16 +336,10 @@ public class NumberleView implements Observer {
     }
 
     private void updateButtonColors(Set<Character> correctPositions, Set<Character> wrongPositions, Set<Character> notInEquation, Set<Character> unused) {
-        Color green = new Color(61, 191, 165);   // 绿色，代表正确位置
-        Color orange = new Color(241, 155, 113); // 橙色，代表错误位置
-        Color grey = new Color(165, 172, 195);   // 灰色，代表不在等式中
-        Color white = new Color(219, 223, 236);  // 白色，代表未使用
-
         // 将逻辑应用于两个面板
         Stream.of(numberPanel, operationPanel).forEach(panel -> {
             for (Component comp : panel.getComponents()) {
-                if (comp instanceof JButton) {
-                    JButton button = (JButton) comp;
+                if (comp instanceof JButton button) {
                     char ch = button.getText().charAt(0);
 
                     Color currentColor = button.getBackground();
@@ -327,61 +370,32 @@ public class NumberleView implements Observer {
 
     @Override
     public void update(java.util.Observable o, Object arg) {
-//        attemptsLabel.setText("Attempts remaining: " + controller.getRemainingAttempts());
         hintButton.setEnabled(controller.getDisplayTargetEquation());
-        if (arg instanceof String) {
-            String message = (String) arg;
+
+        if (arg instanceof String message) {
             switch (message) {
-                case "Input does not contain '='.":
-//                    JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.INFORMATION_MESSAGE);
-//                    currentPosition = input.length();
-//                    input.setLength(0);
-                    break;
-                case "Game Won":
-//                    JOptionPane.showMessageDialog(frame, "Congratulations! You won the game!", "Game Won", JOptionPane.INFORMATION_MESSAGE);
-//                    for (int i = 0; i < INumberleModel.MAX_ATTEMPTS; i++) {
-//                        for (int j = 0; j < 7; j++) {
-//                            fields[i][j].setText("");
-//                        }
-//                    }
-//                    currentPosition = 0;
-//                    remainingAttempts = INumberleModel.MAX_ATTEMPTS - model.getRemainingAttempts();
-//                    input.setLength(0);
-                    break;
-                case "Game Over":
-//                    JOptionPane.showMessageDialog(frame, message + "! No Attempts, The correct equation was: " + controller.getTargetWord(), "Game Over", JOptionPane.INFORMATION_MESSAGE);
-//                    for (int i = 0; i < INumberleModel.MAX_ATTEMPTS; i++) {
-//                        for (int j = 0; j < 7; j++) {
-//                            fields[i][j].setText("");
-//                        }
-//                    }
-//                    currentPosition = 0;
-//                    remainingAttempts = INumberleModel.MAX_ATTEMPTS - model.getRemainingAttempts();
-//                    input.setLength(0);
-                    break;
-                case "Try Again":
-//                    JOptionPane.showMessageDialog(frame, message + ", Attempts remaining: " + model.getRemainingAttempts(), "Try Again", JOptionPane.INFORMATION_MESSAGE);
-//                    currentPosition = 0;
-//                    remainingAttempts = INumberleModel.MAX_ATTEMPTS - model.getRemainingAttempts();
-//                    input.setLength(0);
-                    break;
-                case "Feedback":
+                case "CheckGameFailed" -> {
+                    if (!controller.isGameWon() && controller.isGameOver()) {
+                        JOptionPane.showMessageDialog(frame, "Unfortunately, you did not guess the target equation correctly. The target equation is:" + controller.getTargetWord());
+                    }
+                }
+                case "Restart" -> {
+                    if (controller.getRemainingAttempts() <= 5) {
+                        restartButton.setEnabled(true);
+                    }
+                }
+                case "Feedback" -> {
                     String feedback = controller.getFeedback();
                     applyFeedbackColors(feedback);
-                    break;
-
-                case "UpdateSets":
+                }
+                case "UpdateKeyboard" -> {
                     Set<Character> correctPositions = controller.getCorrectPositions();
                     Set<Character> wrongPositions = controller.getWrongPositions();
                     Set<Character> notInEquation = controller.getNotInEquation();
                     Set<Character> unused = controller.getUnused();
-                    System.out.println(controller.getCurrentGuess());
                     updateButtonColors(correctPositions, wrongPositions, notInEquation, unused);
-
-                    break;
-                default:
-                    JOptionPane.showMessageDialog(frame, message);
-                    break;
+                }
+                default -> JOptionPane.showMessageDialog(frame, message);
             }
         }
     }

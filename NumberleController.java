@@ -31,29 +31,22 @@ public class NumberleController {
         return model.getTargetEquation();
     }
 
-    public StringBuilder getCurrentGuess() {
-        return model.getCurrentGuess();
-    }
 
     public int getRemainingAttempts() {
         return model.getRemainingAttempts();
     }
 
-    public void startNewGame(boolean showEquation, boolean validateInput, boolean randomSelection) {
+    public void initializeGame(boolean showEquation, boolean validateInput, boolean randomSelection) {
         model.initialize(model, showEquation ? 1 : 0, validateInput ? 1 : 0, randomSelection ? 1 : 0);
 
     }
 
+    public void restartGame() {
+        model.restartGame();
+    }
+
     public boolean getDisplayTargetEquation() {
         return model.getDisplayTargetEquation();
-    }
-
-    public boolean getDisplayErrorIfInvalid() {
-        return model.getDisplayErrorIfInvalid();
-    }
-
-    public boolean getUseRandomSelection() {
-        return model.getUseRandomSelection();
     }
 
     public Set<Character> getCorrectPositions() {
