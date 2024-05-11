@@ -1,4 +1,3 @@
-import java.util.List;
 import java.util.Set;
 
 public class NumberleController {
@@ -30,7 +29,6 @@ public class NumberleController {
     public String getTargetWord() {
         return model.getTargetEquation();
     }
-
 
     public int getRemainingAttempts() {
         return model.getRemainingAttempts();

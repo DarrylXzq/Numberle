@@ -10,12 +10,14 @@ public class NumberleView implements Observer {
 
     private final INumberleModel model;
     private final NumberleController controller;
+
     private final JFrame frame = new JFrame("Numberle");
     private final JTextField[][] inputFields = new JTextField[6][7];
-    private final Color green = new Color(61, 191, 165);   // 绿色，代表正确位置
-    private final Color orange = new Color(241, 155, 113); // 橙色，代表错误位置
-    private final Color grey = new Color(165, 172, 195);   // 灰色，代表不在等式中
-    private final Color white = new Color(219, 223, 236);  // 白色，代表未使用
+
+    private final Color green = new Color(61, 191, 165);   // Green color, represents correct position
+    private final Color orange = new Color(241, 155, 113); // Orange color, represents correct symbol but in the wrong position
+    private final Color grey = new Color(165, 172, 195);   // Grey color, represents symbol not in the equation at all
+    private final Color white = new Color(219, 223, 236);  // White color, represents unused buttons
 
     private final JButton hintButton; // Declare hintButton at class level
     private final JButton restartButton; // Declare restartButton at class level
@@ -24,7 +26,7 @@ public class NumberleView implements Observer {
     private JPanel operationPanel;
 
 
-    private boolean isFirstRun = true;  // 初始设置为 true，表示第一次点击
+    private boolean isFirstRun = true;  // Flag to check if the game is running for the first time
 
     boolean stop = false;
 
@@ -49,7 +51,6 @@ public class NumberleView implements Observer {
             controller.restartGame();
 
         });
-
 
         ((NumberleModel) this.model).addObserver(this);
         this.controller.setView(this);
@@ -101,19 +102,19 @@ public class NumberleView implements Observer {
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // 获取复选框的选中状态
+                // get the selected values from the checkboxes
                 boolean showEquation = showEquationCheckBox.isSelected();
                 boolean validateInput = validateInputCheckBox.isSelected();
                 boolean randomSelection = randomSelectionCheckBox.isSelected();
-                // 调用controller的方法，传递设置信息
+                // invoke the initializeGame method in the controller
                 controller.initializeGame(showEquation, validateInput, randomSelection);
-                // 如果不是第一次点击，执行重置界面函数
+                // Reset the game interface if it is not the first run
                 if (!isFirstRun) {
                     resetGameInterface();
                 } else {
-                    isFirstRun = false;  // 更新标志，表示首次点击已完成
+                    isFirstRun = false;  // Set the flag to false after the first run
                 }
-                // 关闭对话框并显示主游戏窗口
+                // Close the settings dialog and show the main frame
                 settingsDialog.dispose();
                 frame.setVisible(true);
             }
@@ -147,8 +148,30 @@ public class NumberleView implements Observer {
 
         JButton howToPlayButton = createButtonWithIcon("How to Play", "./figure/how_to_play.png", 30, 30);
         howToPlayButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(frame, "Game Rules:\n[Insert game rules here]", "How to Play", JOptionPane.INFORMATION_MESSAGE);
+            String rulesText = "<html><body style='width: 200px'>"
+                    + "<h1>How to Play Numberle:</h1>"
+                    + "<p><b>Goal:</b> Guess the hidden math equation in 6 tries.</p>"
+                    + "<p><b>Feedback:</b> Color of the tiles changes to show how close you are.</p>"
+                    + "<ul>"
+                    + "<li><b>Green:</b> Correct symbol in the right position.</li>"
+                    + "<li><b>Orange:</b> Correct symbol but in the wrong position.</li>"
+                    + "<li><b>Grey:</b> Symbol not in the equation at all.</li>"
+                    + "</ul>"
+                    + "<h2>Rules:</h2>"
+                    + "<ul>"
+                    + "<li>Each guess must include exactly one '=' sign.</li>"
+                    + "<li>Use numbers 0-9 and symbols +, -, *, /.</li>"
+                    + "<li>The equation must resolve correctly (e.g., '3+2=5').</li>"
+                    + "<li>Guesses must be in the format of a math equation.</li>"
+                    + "<li>Each try must result in a different equation; guesses are not commutative.</li>"
+                    + "<li>You have six attempts to guess the equation correctly.</li>"
+                    + "</ul>"
+                    + "<p>Win the game by turning all rows green!</p>"
+                    + "</body></html>";
+
+            JOptionPane.showMessageDialog(frame, rulesText, "How to Play", JOptionPane.INFORMATION_MESSAGE);
         });
+
 
         buttonPanel.add(settingsButton);
         buttonPanel.add(restartButton);
@@ -217,8 +240,8 @@ public class NumberleView implements Observer {
         // Reset all JTextFields in inputFields
         for (JTextField[] inputField : inputFields) {
             for (JTextField jTextField : inputField) {
-                jTextField.setText("");  // 清空文本
-                jTextField.setBackground(Color.WHITE);  // 重置背景色为默认
+                jTextField.setText("");  // clear the text
+                jTextField.setBackground(Color.WHITE);  // reset the background color
             }
         }
 
@@ -226,12 +249,12 @@ public class NumberleView implements Observer {
         Stream.of(numberPanel, operationPanel).forEach(panel -> {
             for (Component comp : panel.getComponents()) {
                 if (comp instanceof JButton button) {
-                    button.setBackground(white);  // 清除按钮背景色
-                    button.setEnabled(true);  // 重新启用按钮
+                    button.setBackground(white);  // reset the background color of the button
+                    button.setEnabled(true);  // enable the button
                 }
             }
         });
-
+        // Reset the currentPanelIndex and currentInputIndex
         currentPanelIndex = 0;
         currentInputIndex = 0;
 
@@ -241,9 +264,8 @@ public class NumberleView implements Observer {
     private void disableButtons() {
         Stream.of(numberPanel, operationPanel).forEach(panel -> {
             for (Component comp : panel.getComponents()) {
-                if (comp instanceof JButton) {
-                    JButton button = (JButton) comp;
-                    button.setEnabled(false); // 禁用按钮
+                if (comp instanceof JButton button) {
+                    button.setEnabled(false); // Disable the button
                 }
             }
         });
@@ -252,7 +274,7 @@ public class NumberleView implements Observer {
     private ActionListener createActionListener() {
         return e -> {
             String command = e.getActionCommand();
-            // 处理删除操作
+            // process Delete operation
             if (command.equals("Delete")) {
                 if (currentInputIndex == 6 && !stop) {
                     inputFields[currentPanelIndex][currentInputIndex].setText("");
@@ -262,17 +284,17 @@ public class NumberleView implements Observer {
                     currentInputIndex--;
                 }
             }
-            // 处理 Enter 操作
+            // process Enter operation
             else if (command.equals("Enter")) {
-                // 收集当前行的输入
+                // collect the input from the JTextFields
                 StringBuilder input = new StringBuilder();
                 for (int i = 0; i < 7; i++) {
                     input.append(inputFields[currentPanelIndex][i].getText());
                 }
-                // 调用 controller 的 processInput 方法
+                // invoke the processInput method in the controller
                 if (controller.processInput(input.toString())) {
                     if (controller.isGameOver()) {
-                        disableButtons(); // 禁用所有按钮的方法
+                        disableButtons(); // Disable all buttons
                     } else if (currentPanelIndex < 5) {
                         currentPanelIndex++;
                         currentInputIndex = 0; // Start at the beginning of the next panel
@@ -280,7 +302,7 @@ public class NumberleView implements Observer {
                 }
             }
 
-            // 处理数字和运算符输入
+            // process the number buttons
             else {
                 if (currentInputIndex == 6) {
                     stop = false;
@@ -336,7 +358,7 @@ public class NumberleView implements Observer {
     }
 
     private void updateButtonColors(Set<Character> correctPositions, Set<Character> wrongPositions, Set<Character> notInEquation, Set<Character> unused) {
-        // 将逻辑应用于两个面板
+        // Iterate over all buttons in numberPanel and operationPanel
         Stream.of(numberPanel, operationPanel).forEach(panel -> {
             for (Component comp : panel.getComponents()) {
                 if (comp instanceof JButton button) {
@@ -344,12 +366,12 @@ public class NumberleView implements Observer {
 
                     Color currentColor = button.getBackground();
 
-                    // 如果按钮已经是绿色或灰色，则跳过更新
+                    // if the button is already green or grey, skip it
                     if (currentColor.equals(green) || currentColor.equals(grey)) {
                         continue;
                     }
 
-                    // 根据所属集合更新颜色
+                    // Apply the appropriate color based on the character
                     if (correctPositions.contains(ch)) {
                         button.setBackground(green);
                     } else if (notInEquation.contains(ch) && !currentColor.equals(green)) {
@@ -359,7 +381,7 @@ public class NumberleView implements Observer {
                     } else if (unused.contains(ch)) {
                         button.setBackground(white);
                     } else {
-                        // 如果字符不在任何集合中，重置为默认颜色
+                        // Reset the color to white if the character is not in any of the sets
                         button.setBackground(white);
                     }
                 }
