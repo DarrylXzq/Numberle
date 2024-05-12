@@ -10,13 +10,7 @@ public interface INumberleModel {
 
     void restartGame();
 
-    void startNewGame();
-
     boolean processInput(String input);
-
-    void displaySets();
-
-    void displayTargetEquation();
 
     boolean isGameOver();
 
@@ -28,9 +22,6 @@ public interface INumberleModel {
 
     int getRemainingAttempts();
 
-    String evaluateFeedback(String input);
-
-    // 新增方法
     void setDisplayTargetEquation(boolean displayTargetEquation);
 
     void setDisplayErrorIfInvalid(boolean displayErrorIfInvalid);

@@ -19,13 +19,17 @@ public class CLIApp {
 
         // initialize the model
         model.initialize(model, showEquation, validateInput, randomSelection);
+        gameLogic(model, scanner);
+        scanner.close();
+    }
 
+    private static void gameLogic(INumberleModel model, Scanner scanner) {
         System.out.println("\n✨✨Welcome to Numberle!✨✨" +
                 "\n🔢You have " + model.MAX_ATTEMPTS + " attempts to guess the equation!🔢");
 
         //enter the game logic
         while (!model.isGameOver()) {
-            model.displayTargetEquation();
+            displayTargetEquation(model);
             System.out.print("Please enter your guess: ");
             String input = scanner.nextLine();
 
@@ -40,14 +44,14 @@ public class CLIApp {
             // check if the game is won
             if (model.isGameWon()) {
                 System.out.println("CurrentGuess Result: " + model.getCurrentGuess());
-                model.displaySets();
+                displaySets(model);
                 System.out.println("\n🤗Congratulations! You have guessed the target equation correctly!");
                 break;
             }
 
             // display the current guess and remaining attempts
             System.out.println("CurrentGuess Result: " + model.getCurrentGuess());
-            model.displaySets();
+            displaySets(model);
             System.out.println("Remaining Attempts: " + model.getRemainingAttempts());
         }
 
@@ -57,7 +61,6 @@ public class CLIApp {
         }
 
         System.out.println("\n✨✨Game Over, Thank you for playing Numberle!✨✨");
-        scanner.close();
     }
 
     private static int readBinaryInput(Scanner scanner, String prompt) {
@@ -70,5 +73,26 @@ public class CLIApp {
             }
             System.out.println("⚠️invalid input, please enter 0 or 1!");
         }
+    }
+
+    private static void displayTargetEquation(INumberleModel model) {
+        if (model.getDisplayTargetEquation()) {
+            System.out.println("\n💡Target Equation is: " + model.getTargetEquation());
+        }
+    }
+
+    private static void displaySets(INumberleModel model) {
+        // define the colors for the sets
+        String green = "\033[32m";  // Green for correct positions
+        String orange = "\033[93m"; // Bright Yellow (orange-like) for wrong positions
+        String gray = "\033[90m";   // Gray for not in equation
+        String white = "\033[97m";  // White for unused
+        String reset = "\033[0m";   // Reset to default color
+
+        // display the sets
+        System.out.println(green + "correctPositions: " + model.getCorrectPositions());
+        System.out.println(orange + "wrongPositions: " + model.getWrongPositions());
+        System.out.println(gray + "notInEquation: " + model.getNotInEquation());
+        System.out.println(white + "unused: " + model.getUnused() + reset);
     }
 }
