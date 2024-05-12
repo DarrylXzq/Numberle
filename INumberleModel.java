@@ -1,20 +1,22 @@
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
 public interface INumberleModel {
+    // Constants for the game attempts
     int MAX_ATTEMPTS = 6;
-
-    int readBinaryInput(Scanner scanner, String prompt);
 
     void initialize(INumberleModel model, int showEquation, int validateInput, int randomSelection);
 
     void restartGame();
 
-    void gameLogic(INumberleModel model);
-
     void startNewGame();
 
     boolean processInput(String input);
+
+    void displaySets();
+
+    void displayTargetEquation();
 
     boolean isGameOver();
 
@@ -46,5 +48,9 @@ public interface INumberleModel {
     Set<Character> getUnused();
 
     String getFeedback();
+
+    List<Integer> getErrorIndices();
+
+    List<String> getErrorMessages();
 
 }

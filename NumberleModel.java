@@ -8,10 +8,10 @@ import java.io.IOException;
 public class NumberleModel extends Observable implements INumberleModel {
 
     //define four sets to store the characters
-    Set<Character> correctPositions = new LinkedHashSet<>();
-    Set<Character> wrongPositions = new LinkedHashSet<>();
-    Set<Character> notInEquation = new LinkedHashSet<>();
-    Set<Character> unused = new LinkedHashSet<>(Arrays.asList('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '='));
+    private final Set<Character> correctPositions = new LinkedHashSet<>();
+    private final Set<Character> wrongPositions = new LinkedHashSet<>();
+    private final Set<Character> notInEquation = new LinkedHashSet<>();
+    private final Set<Character> unused = new LinkedHashSet<>(Arrays.asList('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '='));
 
     // define target equation and current guess and remaining attempts and game status
     private String targetEquation;
@@ -37,7 +37,7 @@ public class NumberleModel extends Observable implements INumberleModel {
     private String Feedback;
 
     //store the error message index
-    private List<Integer> errorIndices = new ArrayList<>();
+    private final List<Integer> errorIndices = new ArrayList<>();
 
     //store the error message list
     private final List<String> ERROR_MESSAGES = List.of(
@@ -51,40 +51,18 @@ public class NumberleModel extends Observable implements INumberleModel {
     );
 
 
-    @Override
-    public int readBinaryInput(Scanner scanner, String prompt) {
-        String input;
-        while (true) {
-            System.out.print(prompt);
-            input = scanner.nextLine(); // read the input
-            if (input.equals("0") || input.equals("1")) {
-                return Integer.parseInt(input); // convert the input to integer
-            }
-            System.out.println("⚠️invalid input, please enter 0 or 1!");
-        }
-    }
-
-    private void configureModel(INumberleModel model, int showEquation, int validateInput, int randomSelection) {
-        model.setDisplayTargetEquation(showEquation == 1);
-        model.setDisplayErrorIfInvalid(validateInput == 1);
-        model.setUseRandomSelection(randomSelection == 1);
-        setChanged();
-        notifyObservers();
-    }
-
-    // initialize the four sets
-    private void initializeSets() {
-        correctPositions.clear();
-        wrongPositions.clear();
-        notInEquation.clear();
-        unused.clear();
-        for (char c : "0123456789+-*/=".toCharArray()) {
-            unused.add(c);
-        }
-    }
-
+    /**
+     * Initializes a new game with a target equation either randomly selected or from the start of the list.
+     *
+     * @requires validEquations != null && !validEquations.isEmpty() && MAX_ATTEMPTS > 0
+     * @ensures remainingAttempts == MAX_ATTEMPTS && gameWon == false && currentGuess.length() == 7
+     * @ensures (! useRandomSelection = = > targetEquation.equals ( validEquations.get ( 0))) &&
+     * (useRandomSelection ==> validEquations.contains(targetEquation))
+     */
     @Override
     public void startNewGame() {
+        assert validEquations != null && !validEquations.isEmpty() && MAX_ATTEMPTS > 0 : "Precondition failed: Valid equations list must not be empty and max attempts must be positive";
+
         remainingAttempts = MAX_ATTEMPTS;
         gameWon = false;
         currentGuess = new StringBuilder("       ");
@@ -95,79 +73,68 @@ public class NumberleModel extends Observable implements INumberleModel {
         } else {
             targetEquation = validEquations.get(0); // always use the first equation in the list
         }
+
+        assert remainingAttempts == MAX_ATTEMPTS && !gameWon && currentGuess.length() == 7 : "Postcondition failed: Game state not correctly initialized";
+        assert (useRandomSelection && validEquations.contains(targetEquation)) ||
+                (!useRandomSelection && targetEquation.equals(validEquations.get(0))) : "Postcondition failed: Target equation not correctly assigned";
     }
 
-    // restart the game used for restart button
+    /**
+     * Resets the game settings and starts a new game.
+     *
+     * @requires validEquations != null && !validEquations.isEmpty()
+     * @ensures remainingAttempts == MAX_ATTEMPTS && gameWon == false && currentGuess.length() == 7
+     */
     @Override
     public void restartGame() {
+        assert validEquations != null && !validEquations.isEmpty() : "Precondition failed: Valid equations must not be null or empty";
+
         initializeSets();
         startNewGame();
     }
 
-    //initialize the model and start the game, used for the setting button
+    /**
+     * Configures and initializes the game model with the provided settings and starts a new game.
+     *
+     * @requires model != null && (showEquation == 0 || showEquation == 1) &&
+     * (validateInput == 0 || validateInput == 1) && (randomSelection == 0 || randomSelection == 1)
+     * @ensures displayTargetEquation == (showEquation == 1) &&
+     * displayErrorIfInvalid == (validateInput == 1) &&
+     * useRandomSelection == (randomSelection == 1)
+     */
     @Override
     public void initialize(INumberleModel model, int showEquation, int validateInput, int randomSelection) {
+        assert model != null && (showEquation == 0 || showEquation == 1) &&
+                (validateInput == 0 || validateInput == 1) && (randomSelection == 0 || randomSelection == 1) : "Precondition failed: Invalid initialization parameters";
+
         loadValidEquations();
         configureModel(model, showEquation, validateInput, randomSelection);
         restartGame();
+
+        assert displayTargetEquation == (showEquation == 1) && displayErrorIfInvalid == (validateInput == 1) &&
+                useRandomSelection == (randomSelection == 1) : "Postcondition failed: Model settings not applied correctly";
     }
 
-
-    // display the target equation for CLI Version
-    private void displayTargetEquation() {
-        if (displayTargetEquation) {
-            System.out.println("\n💡Target Equation is: " + getTargetEquation());
-        }
-    }
-
-    // game logic for CLI Version
-    @Override
-    public void gameLogic(INumberleModel model) {
-        Scanner scanner = new Scanner(System.in);
-        // main game loop
-        while (!model.isGameOver()) {
-            displayTargetEquation();
-            System.out.print("Please enter your guess: ");
-            String input = scanner.nextLine();
-
-            // process the input
-            if (!model.processInput(input)) {
-                for (int index : errorIndices) {
-                    System.out.println(ERROR_MESSAGES.get(index));
-                }
-                continue;
-            }
-
-            // check if the game is won
-            if (model.isGameWon()) {
-                System.out.println("CurrentGuess Result: " + model.getCurrentGuess());
-                displaySets();
-                System.out.println("\n🤗Congratulations! You have guessed the target equation correctly!");
-                break;
-            }
-
-            // display the current guess and remaining attempts
-            System.out.println("CurrentGuess Result: " + model.getCurrentGuess());
-            displaySets();
-            System.out.println("Remaining Attempts: " + model.getRemainingAttempts());
-        }
-
-        // display the result of the game
-        if (!model.isGameWon()) {
-            System.out.println("\n😭Unfortunately, you did not guess the target equation correctly. The target equation is:" + model.getTargetEquation());
-        }
-
-        System.out.println("\n✨✨Game Over, Thank you for playing Numberle!✨✨");
-        scanner.close();
-    }
-
+    /**
+     * Processes the input from the user and updates the game state based on the validity of the input.
+     *
+     * @requires input != null
+     * @ensures (! \ old ( isValidEquation ( input)) ==> \result == false) &&
+     * (\old(isValidEquation(input)) ==> \result == true) &&
+     * (\old(isValidEquation(input)) ==> remainingAttempts == \old(remainingAttempts) - 1) &&
+     * (\old(input.equals(targetEquation)) ==> gameWon == true)
+     * @ensures (\ old ( input.equals ( targetEquation)) ==> \result == true)
+     */
     @Override
     public boolean processInput(String input) {
+        assert input != null : "Precondition failed: Input cannot be null";
+
         if (!isValidEquation(input)) {
             for (int index : errorIndices) {
                 setChanged();
                 notifyObservers(ERROR_MESSAGES.get(index));
             }
+            assert !gameWon : "Postcondition failed: Game should not be won on invalid input";
             return false;  // directly return false if the input is invalid
         }
 
@@ -187,7 +154,135 @@ public class NumberleModel extends Observable implements INumberleModel {
         //notify the observer to check game failed
         setChanged();
         notifyObservers("CheckGameFailed");
+        assert (input.equals(targetEquation) == gameWon) : "Postcondition failed: Game won state mismatch";
         return true;
+    }
+
+    /**
+     * Evaluates feedback for the input by comparing it against the target equation.
+     *
+     * @requires input != null && targetEquation != null
+     * @ensures \result.length() == input.length()
+     * @ensures (\ forall int i ; 0 < = i & & i < input.length ();
+     * (\result.charAt(i) == 'G' && input.charAt(i) == targetEquation.charAt(i)) ||
+     * (\result.charAt(i) == 'O' && input.charAt(i) != targetEquation.charAt(i)) ||
+     * (\result.charAt(i) == 'X'))
+     */
+    @Override
+    public String evaluateFeedback(String input) {
+        assert input != null && targetEquation != null : "Precondition failed: Input or target equation cannot be null";
+
+        // initialize the feedback string
+        StringBuilder feedback = new StringBuilder("       ");
+        // convert the input and target equation to char arrays
+        char[] inputChars = input.toCharArray();
+        char[] targetChars = targetEquation.toCharArray();
+
+        // first check for correct positions
+        for (int i = 0; i < inputChars.length; i++) {
+            if (inputChars[i] == targetChars[i]) {
+                feedback.setCharAt(i, 'G'); // Green indicates correct position
+                targetChars[i] = ' '; // mark as used
+            }
+        }
+
+        // then check for wrong positions
+        for (int i = 0; i < inputChars.length; i++) {
+            if (feedback.charAt(i) == 'G') continue; // skip correct positions
+            for (int j = 0; j < targetChars.length; j++) {
+                if (inputChars[i] == targetChars[j] && targetChars[j] != ' ') {
+                    feedback.setCharAt(i, 'O'); // Orange indicates wrong position
+                    targetChars[j] = ' '; // mark as used
+                    break;
+                }
+            }
+        }
+
+        // finally, mark the remaining characters as not in the equation
+        for (int i = 0; i < feedback.length(); i++) {
+            if (feedback.charAt(i) != 'G' && feedback.charAt(i) != 'O') {
+                feedback.setCharAt(i, 'X'); // Grey indicates not in equation
+            }
+        }
+        Feedback = feedback.toString();
+        setChanged();
+        notifyObservers("Feedback");
+
+        assert feedback.length() == input.length() : "Postcondition failed: Feedback length mismatch with input length";
+        return feedback.toString();
+    }
+
+    /**
+     * Checks if the game is over based on remaining attempts or if the game has been won.
+     *
+     * @ensures \result == (remainingAttempts <= 0 || gameWon)
+     */
+    @Override
+    public boolean isGameOver() {
+        return remainingAttempts <= 0 || gameWon;
+    }
+
+    /**
+     * Checks if the game has been won.
+     *
+     * @ensures \result == gameWon
+     */
+    @Override
+    public boolean isGameWon() {
+        return gameWon;
+    }
+
+    /**
+     * Displays the target equation if it is set to be displayed.
+     *
+     * @requires displayTargetEquation == true
+     * @ensures targetEquation is displayed on the console
+     */
+    @Override
+    public void displayTargetEquation() {
+        if (displayTargetEquation) {
+            System.out.println("\n💡Target Equation is: " + getTargetEquation());
+        }
+    }
+
+    /**
+     * Displays the sets of characters based on their classification in the game.
+     *
+     * @ensures Sets are displayed on the console
+     */
+    @Override
+    public void displaySets() {
+        // define the colors for the sets
+        String green = "\033[32m";  // Green for correct positions
+        String orange = "\033[93m"; // Bright Yellow (orange-like) for wrong positions
+        String gray = "\033[90m";   // Gray for not in equation
+        String white = "\033[97m";  // White for unused
+        String reset = "\033[0m";   // Reset to default color
+
+        // display the sets
+        System.out.println(green + "correctPositions: " + correctPositions);
+        System.out.println(orange + "wrongPositions: " + wrongPositions);
+        System.out.println(gray + "notInEquation: " + notInEquation);
+        System.out.println(white + "unused: " + unused);
+    }
+
+    private void configureModel(INumberleModel model, int showEquation, int validateInput, int randomSelection) {
+        model.setDisplayTargetEquation(showEquation == 1);
+        model.setDisplayErrorIfInvalid(validateInput == 1);
+        model.setUseRandomSelection(randomSelection == 1);
+        setChanged();
+        notifyObservers();
+    }
+
+    // initialize the four sets
+    private void initializeSets() {
+        correctPositions.clear();
+        wrongPositions.clear();
+        notInEquation.clear();
+        unused.clear();
+        for (char c : "0123456789+-*/=".toCharArray()) {
+            unused.add(c);
+        }
     }
 
     private void loadValidEquations() {
@@ -270,99 +365,6 @@ public class NumberleModel extends Observable implements INumberleModel {
         return true;
     }
 
-    // Following the BODMAS rule, evaluate the expression
-    private double evaluateExpression(String expression) {
-        Stack<Double> numbers = new Stack<>();
-        Stack<Character> operators = new Stack<>();
-
-        int index = 0;
-        while (index < expression.length()) {
-            char c = expression.charAt(index);
-
-            // process numbers
-            if (Character.isDigit(c)) {
-                StringBuilder numberBuilder = new StringBuilder();
-                while (index < expression.length() && Character.isDigit(expression.charAt(index))) {
-                    numberBuilder.append(expression.charAt(index++));
-                }
-                numbers.push(Double.parseDouble(numberBuilder.toString()));
-                continue; // skip the index increment
-            }
-
-            // process operators
-            if (c == '+' || c == '-' || c == '*' || c == '/') {
-                while (!operators.isEmpty() && hasPrecedence(c, operators.peek())) {
-                    numbers.push(applyOperator(operators.pop(), numbers.pop(), numbers.pop()));
-                }
-                operators.push(c);
-            }
-
-            index++;
-        }
-
-        // process the remaining operators
-        while (!operators.isEmpty()) {
-            numbers.push(applyOperator(operators.pop(), numbers.pop(), numbers.pop()));
-        }
-
-        return numbers.pop();
-    }
-
-    private boolean hasPrecedence(char currentOp, char stackOp) {
-        // check if the current operator has higher precedence than the operator on the stack
-        return (currentOp != '*' && currentOp != '/') || (stackOp != '+' && stackOp != '-');
-    }
-
-    private double applyOperator(char operator, double b, double a) {
-        return switch (operator) {
-            case '+' -> a + b;
-            case '-' -> a - b;
-            case '*' -> a * b;
-            case '/' -> a / b;
-            default -> throw new UnsupportedOperationException("Invalid operator: " + operator);
-        };
-    }
-
-    @Override
-    public String evaluateFeedback(String input) {
-        // initialize the feedback string
-        StringBuilder feedback = new StringBuilder("       ");
-        // convert the input and target equation to char arrays
-        char[] inputChars = input.toCharArray();
-        char[] targetChars = targetEquation.toCharArray();
-
-        // first check for correct positions
-        for (int i = 0; i < inputChars.length; i++) {
-            if (inputChars[i] == targetChars[i]) {
-                feedback.setCharAt(i, 'G'); // Green indicates correct position
-                targetChars[i] = ' '; // mark as used
-            }
-        }
-
-        // then check for wrong positions
-        for (int i = 0; i < inputChars.length; i++) {
-            if (feedback.charAt(i) == 'G') continue; // skip correct positions
-            for (int j = 0; j < targetChars.length; j++) {
-                if (inputChars[i] == targetChars[j] && targetChars[j] != ' ') {
-                    feedback.setCharAt(i, 'O'); // Orange indicates wrong position
-                    targetChars[j] = ' '; // mark as used
-                    break;
-                }
-            }
-        }
-
-        // finally, mark the remaining characters as not in the equation
-        for (int i = 0; i < feedback.length(); i++) {
-            if (feedback.charAt(i) != 'G' && feedback.charAt(i) != 'O') {
-                feedback.setCharAt(i, 'X'); // Grey indicates not in equation
-            }
-        }
-        Feedback = feedback.toString();
-        setChanged();
-        notifyObservers("Feedback");
-        return feedback.toString();
-    }
-
     private void updateCurrentGuess(String input) {
         String feedback = evaluateFeedback(input);
         String[] colors = {"\033[32m", // Green
@@ -418,30 +420,60 @@ public class NumberleModel extends Observable implements INumberleModel {
         notifyObservers("UpdateKeyboard");
     }
 
-    private void displaySets() {
-        // define the colors for the sets
-        String green = "\033[32m";  // Green for correct positions
-        String orange = "\033[93m"; // Bright Yellow (orange-like) for wrong positions
-        String gray = "\033[90m";   // Gray for not in equation
-        String white = "\033[97m";  // White for unused
-        String reset = "\033[0m";   // Reset to default color
 
-        // display the sets
-        System.out.println(green + "correctPositions: " + correctPositions);
-        System.out.println(orange + "wrongPositions: " + wrongPositions);
-        System.out.println(gray + "notInEquation: " + notInEquation);
-        System.out.println(white + "unused: " + unused);
+    // Following the BODMAS rule, evaluate the expression
+    private double evaluateExpression(String expression) {
+        Stack<Double> numbers = new Stack<>();
+        Stack<Character> operators = new Stack<>();
+
+        int index = 0;
+        while (index < expression.length()) {
+            char c = expression.charAt(index);
+
+            // process numbers
+            if (Character.isDigit(c)) {
+                StringBuilder numberBuilder = new StringBuilder();
+                while (index < expression.length() && Character.isDigit(expression.charAt(index))) {
+                    numberBuilder.append(expression.charAt(index++));
+                }
+                numbers.push(Double.parseDouble(numberBuilder.toString()));
+                continue; // skip the index increment
+            }
+
+            // process operators
+            if (c == '+' || c == '-' || c == '*' || c == '/') {
+                while (!operators.isEmpty() && hasPrecedence(c, operators.peek())) {
+                    numbers.push(applyOperator(operators.pop(), numbers.pop(), numbers.pop()));
+                }
+                operators.push(c);
+            }
+
+            index++;
+        }
+
+        // process the remaining operators
+        while (!operators.isEmpty()) {
+            numbers.push(applyOperator(operators.pop(), numbers.pop(), numbers.pop()));
+        }
+
+        return numbers.pop();
     }
 
-    @Override
-    public boolean isGameOver() {
-        return remainingAttempts <= 0 || gameWon;
+    private boolean hasPrecedence(char currentOp, char stackOp) {
+        // check if the current operator has higher precedence than the operator on the stack
+        return (currentOp != '*' && currentOp != '/') || (stackOp != '+' && stackOp != '-');
     }
 
-    @Override
-    public boolean isGameWon() {
-        return gameWon;
+    private double applyOperator(char operator, double b, double a) {
+        return switch (operator) {
+            case '+' -> a + b;
+            case '-' -> a - b;
+            case '*' -> a * b;
+            case '/' -> a / b;
+            default -> throw new UnsupportedOperationException("Invalid operator: " + operator);
+        };
     }
+
 
     @Override
     public String getTargetEquation() {
@@ -502,6 +534,16 @@ public class NumberleModel extends Observable implements INumberleModel {
     @Override
     public String getFeedback() {
         return Feedback;
+    }
+
+    @Override
+    public List<Integer> getErrorIndices() {
+        return errorIndices;
+    }
+
+    @Override
+    public List<String> getErrorMessages() {
+        return ERROR_MESSAGES;
     }
 
 }

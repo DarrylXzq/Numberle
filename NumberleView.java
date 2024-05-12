@@ -417,7 +417,7 @@ public class NumberleView implements Observer {
                     Set<Character> unused = controller.getUnused();
                     updateButtonColors(correctPositions, wrongPositions, notInEquation, unused);
                 }
-                default -> JOptionPane.showMessageDialog(frame, message);
+                default -> JOptionPane.showMessageDialog(frame, message, "Message", JOptionPane.INFORMATION_MESSAGE);
             }
         }
     }
