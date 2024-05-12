@@ -30,6 +30,10 @@ public interface INumberleModel {
 
     boolean getDisplayTargetEquation();
 
+    boolean getDisplayErrorIfInvalid();
+
+    boolean getUseRandomSelection();
+
     Set<Character> getCorrectPositions();
 
     Set<Character> getWrongPositions();
@@ -43,5 +47,4 @@ public interface INumberleModel {
     List<Integer> getErrorIndices();
 
     List<String> getErrorMessages();
-
 }

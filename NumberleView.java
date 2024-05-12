@@ -11,9 +11,12 @@ public class NumberleView implements Observer {
     private final INumberleModel model;
     private final NumberleController controller;
 
+    //The main frame
     private final JFrame frame = new JFrame("Numberle");
+    //The Game Board
     private final JTextField[][] inputFields = new JTextField[6][7];
 
+    // Colors for different feedback
     private final Color green = new Color(61, 191, 165);   // Green color, represents correct position
     private final Color orange = new Color(241, 155, 113); // Orange color, represents correct symbol but in the wrong position
     private final Color grey = new Color(165, 172, 195);   // Grey color, represents symbol not in the equation at all
@@ -22,27 +25,31 @@ public class NumberleView implements Observer {
     private final JButton hintButton; // Declare hintButton at class level
     private final JButton restartButton; // Declare restartButton at class level
 
+    // Panels for the number and operation buttons of keyboard
     private JPanel numberPanel;
     private JPanel operationPanel;
 
 
     private boolean isFirstRun = true;  // Flag to check if the game is running for the first time
 
-    boolean stop = false;
+    boolean stop = false;//flag to check if the input is full
 
-    private int currentPanelIndex = 0;
-    private int currentInputIndex = 0;
+    private int currentPanelIndex = 0;//initialize the currentPanelIndex to 0
+    private int currentInputIndex = 0;//initialize the currentInputIndex to 0
 
+    // Constructor
     public NumberleView(INumberleModel model, NumberleController controller) {
         this.controller = controller;
         this.model = model;
 
+        // Create the hintButton and add an ActionListener
         hintButton = createButtonWithIcon("Hint", "./figure/hint.png", 30, 30);
         hintButton.addActionListener(e -> {
             String targetEquation = controller.getTargetWord();
             JOptionPane.showMessageDialog(frame, "Target Equation: " + targetEquation, "Hint", JOptionPane.INFORMATION_MESSAGE);
         });
 
+        // Create the restartButton and add an ActionListener
         restartButton = createButtonWithIcon("Restart", "./figure/restart.png", 30, 30);
         restartButton.setEnabled(false);
         restartButton.addActionListener(e -> {
@@ -52,21 +59,27 @@ public class NumberleView implements Observer {
 
         });
 
+        // Add this view as an observer of the model
         ((NumberleModel) this.model).addObserver(this);
         this.controller.setView(this);
         update((NumberleModel) this.model, null);
+        // Show the settings dialog
         showPreGameSettings();
+        // Initialize the frame
         initializeFrame();
     }
 
+    // Method to show the settings dialog before the game starts
     private void showPreGameSettings() {
         JDialog settingsDialog = new JDialog(frame, "Settings", true);
+        // Set the size and location of the dialog
         settingsDialog.setLocationRelativeTo(frame);
         settingsDialog.setLayout(new GridBagLayout());
         settingsDialog.setSize(400, 400);
         settingsDialog.setLocationRelativeTo(frame);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
+        // Set the layout of the dialog to GridBagLayout
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -128,6 +141,7 @@ public class NumberleView implements Observer {
 
 
     public void initializeFrame() {
+        // Set the default close operation
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(700, 700);
         frame.setLayout(new GridBagLayout());
@@ -172,14 +186,16 @@ public class NumberleView implements Observer {
             JOptionPane.showMessageDialog(frame, rulesText, "How to Play", JOptionPane.INFORMATION_MESSAGE);
         });
 
-
+        // Add the buttons to the buttonPanel
         buttonPanel.add(settingsButton);
         buttonPanel.add(restartButton);
         buttonPanel.add(hintButton);
         buttonPanel.add(howToPlayButton);
 
+        // Add the buttonPanel to the topPanel
         topPanel.add(buttonPanel, BorderLayout.EAST);
 
+        // Add the topPanel to the frame
         gbc.weighty = 0.5;
         frame.add(topPanel, gbc);
 
@@ -236,6 +252,7 @@ public class NumberleView implements Observer {
         frame.setLocationRelativeTo(null);
     }
 
+    // Method to reset the game interface
     private void resetGameInterface() {
         // Reset all JTextFields in inputFields
         for (JTextField[] inputField : inputFields) {
@@ -260,7 +277,7 @@ public class NumberleView implements Observer {
 
     }
 
-
+    // Method to disable all buttons after the game is over
     private void disableButtons() {
         Stream.of(numberPanel, operationPanel).forEach(panel -> {
             for (Component comp : panel.getComponents()) {
@@ -271,6 +288,7 @@ public class NumberleView implements Observer {
         });
     }
 
+    // Method to create an ActionListener for the buttons, numbers, and operations
     private ActionListener createActionListener() {
         return e -> {
             String command = e.getActionCommand();
@@ -337,6 +355,7 @@ public class NumberleView implements Observer {
         return new ImageIcon(scaledImg);
     }
 
+    // Method to apply feedback colors to the JTextFields
     private void applyFeedbackColors(String feedback) {
         if (feedback == null || feedback.length() != 7) {
             JOptionPane.showMessageDialog(frame, "Invalid feedback length.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -357,6 +376,7 @@ public class NumberleView implements Observer {
         }
     }
 
+    // Method to update the colors of the buttons based on the feedback, correctPositions, wrongPositions, notInEquation, and unused
     private void updateButtonColors(Set<Character> correctPositions, Set<Character> wrongPositions, Set<Character> notInEquation, Set<Character> unused) {
         // Iterate over all buttons in numberPanel and operationPanel
         Stream.of(numberPanel, operationPanel).forEach(panel -> {
@@ -389,9 +409,10 @@ public class NumberleView implements Observer {
         });
     }
 
-
+    // Method to update the view based on the changes in the model
     @Override
     public void update(java.util.Observable o, Object arg) {
+        // Enable the hintButton if the displayTargetEquation is true
         hintButton.setEnabled(controller.getDisplayTargetEquation());
 
         if (arg instanceof String message) {
@@ -417,6 +438,7 @@ public class NumberleView implements Observer {
                     Set<Character> unused = controller.getUnused();
                     updateButtonColors(correctPositions, wrongPositions, notInEquation, unused);
                 }
+                // Display the message in a dialog box for error messages and won information
                 default -> JOptionPane.showMessageDialog(frame, message, "Message", JOptionPane.INFORMATION_MESSAGE);
             }
         }

@@ -461,6 +461,16 @@ public class NumberleModel extends Observable implements INumberleModel {
     }
 
     @Override
+    public boolean getDisplayErrorIfInvalid() {
+        return displayErrorIfInvalid;
+    }
+
+    @Override
+    public boolean getUseRandomSelection() {
+        return useRandomSelection;
+    }
+
+    @Override
     public Set<Character> getCorrectPositions() {
         return correctPositions;
     }

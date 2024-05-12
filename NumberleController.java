@@ -34,11 +34,13 @@ public class NumberleController {
         return model.getRemainingAttempts();
     }
 
+    //initialize the game
     public void initializeGame(boolean showEquation, boolean validateInput, boolean randomSelection) {
         model.initialize(model, showEquation ? 1 : 0, validateInput ? 1 : 0, randomSelection ? 1 : 0);
 
     }
 
+    //restart the game
     public void restartGame() {
         model.restartGame();
     }
