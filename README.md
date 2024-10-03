@@ -1,6 +1,6 @@
 # Numberle
-
-`Numberle` is a mathematical equation guessing game where players must accurately guess a randomly generated equation within `six attempts`. Players input their `equation`, and the goal is to match the `target equation`. In the calculation, players can use `numbers (0-9)` and `arithmetic symbols (+ - * / =)`.
+> [!IMPORTANT]
+> `Numberle` is a mathematical equation guessing game where players must accurately guess a randomly generated equation within `six attempts`. Players input their `equation`, and the goal is to match the `target equation`. In the calculation, players can use `numbers (0-9)` and `arithmetic symbols (+ - * / =)`.
 
 <div align="left">
   <img src="https://img.shields.io/badge/-Java-blue.svg">
@@ -36,6 +36,18 @@
 >    - Equation Selection Mode: If set, the equation is randomly selected; otherwise, a fixed equation is used.
 > 10. **Unit Testing**: Use the JUnit testing tool to conduct unit tests on `INumberleModel` to verify expected outputs for various inputs.
 
+## Demo
+> [!NOTE]
+> The first two images are from the CLI version, while the last four are illustrations of the GUI version in operation.
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/997e715d-0ed9-44e6-bc8e-1edc3d0832db" width="400">
+  <img src="https://github.com/user-attachments/assets/861d63ff-2871-4a2c-bc29-dd284a5c4cc1" width="400">
+  <img src="https://github.com/user-attachments/assets/06ed9631-aa65-450e-b5b3-00eeedcbcb18" width="400">
+  <img src="https://github.com/user-attachments/assets/c733cc85-59cf-4274-b8dd-c9d68b11cc05" width="400">
+  <img src="https://github.com/user-attachments/assets/03531c21-3763-4aed-8e49-65b8af6d386d" width="400">
+  <img src="https://github.com/user-attachments/assets/bffa8fdd-980a-4113-b3a6-72b583804b59" width="405">
+</div>
+
 ## Programming Technologies
 
 | Technology    | Description                       |
@@ -54,16 +66,16 @@
 | Testing and Documentation | Complete unit tests with detailed documentation, including class diagrams and code comments. |
 
 ## How to Use
-
-1. Clone this repository:
-    ```sh
-    git clone https://github.com/DarrylXzq/Numberle.git
-    ```
-2. Import the project into your Integrated Development Environment (IDE).
-3. Compile and run:
-    - **GUI Version**: Run `GUIAPP.java`
-    - **CLI Version**: Run `CLIAPP.java`
-4. Use flags to experience a variety of gameplay.
+> [!NOTE]
+> 1. Clone this repository:
+>   ```sh
+>   git clone https://github.com/DarrylXzq/Numberle.git
+>   ```
+> 2. Import the project into your Integrated Development Environment (IDE).
+> 3. Compile and run:
+>   - **GUI Version**: Run `GUIAPP.java`
+>   - **CLI Version**: Run `CLIAPP.java`
+> 4. Use flags to experience a variety of gameplay.
 
 ## Usage Restrictions
 > [!WARNING]
